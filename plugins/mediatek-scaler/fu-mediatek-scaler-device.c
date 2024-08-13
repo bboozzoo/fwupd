@@ -9,7 +9,6 @@
 
 #include <fcntl.h>
 #include <glib/gstdio.h>
-#include <linux/i2c-dev.h>
 
 #include "fu-mediatek-scaler-common.h"
 #include "fu-mediatek-scaler-device.h"
@@ -41,28 +40,6 @@ struct _FuMediatekScalerDevice {
 };
 
 G_DEFINE_TYPE(FuMediatekScalerDevice, fu_mediatek_scaler_device, FU_TYPE_I2C_DEVICE)
-
-static gboolean
-fu_mediatek_scaler_ensure_device_address(FuMediatekScalerDevice *self,
-					 guint8 address,
-					 GError **error)
-{
-	if (!fu_udev_device_ioctl(FU_UDEV_DEVICE(self),
-				  I2C_SLAVE,
-				  (guint8 *)(guintptr)address,
-				  sizeof(guintptr),
-				  NULL,
-				  FU_MEDIATEK_SCALER_DEVICE_IOCTL_TIMEOUT,
-				  FU_UDEV_DEVICE_IOCTL_FLAG_NONE,
-				  error)) {
-		g_prefix_error(error,
-			       "failed to set address '0x%02x' on %s: ",
-			       address,
-			       fu_udev_device_get_device_file(FU_UDEV_DEVICE(self)));
-		return FALSE;
-	}
-	return TRUE;
-}
 
 static gboolean
 fu_mediatek_scaler_device_ddc_write(FuMediatekScalerDevice *self,
@@ -306,9 +283,10 @@ fu_mediatek_scaler_device_open(FuDevice *device, GError **error)
 		return FALSE;
 
 	/* set the target address -- should be safe */
-	if (!fu_mediatek_scaler_ensure_device_address(self,
-						      FU_DDC_I2C_ADDR_DISPLAY_DEVICE >> 1,
-						      error))
+	if (!fu_i2c_device_set_address(FU_I2C_DEVICE(self),
+				       FU_DDC_I2C_ADDR_DISPLAY_DEVICE >> 1,
+				       FALSE,
+				       error))
 		return FALSE;
 
 	/* we know this is a Mediatek scaler now */
@@ -327,9 +305,10 @@ fu_mediatek_scaler_device_close(FuDevice *device, GError **error)
 	FuMediatekScalerDevice *self = FU_MEDIATEK_SCALER_DEVICE(device);
 
 	/* set the target address */
-	if (!fu_mediatek_scaler_ensure_device_address(self,
-						      FU_DDC_I2C_ADDR_DISPLAY_DEVICE >> 1,
-						      error))
+	if (!fu_i2c_device_set_address(FU_I2C_DEVICE(self),
+				       FU_DDC_I2C_ADDR_DISPLAY_DEVICE >> 1,
+				       FALSE,
+				       error))
 		return FALSE;
 
 	/* reset DDC priority */
