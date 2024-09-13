@@ -10,7 +10,6 @@ engine_dep = [
   libxmlb,
   giounix,
   gmodule,
-  gudev,
   libusb,
   libjsonglib,
   polkit,
@@ -24,7 +23,6 @@ if get_option('passim').allowed()
 endif
 
 client_dep = [
-  gudev,
   libcurl,
   libjcat,
   libjsonglib,
@@ -57,6 +55,7 @@ fwupd_engine_src = [
   'fu-remote.c',
   'fu-remote-list.c',
   'fu-security-attr-common.c',
+  'fu-udev-backend.c',
   'fu-usb-backend.c',
   'fu-client.c',
   'fu-client-list.c',
@@ -64,9 +63,6 @@ fwupd_engine_src = [
 
 if giounix.found()
   fwupd_engine_src += 'fu-unix-seekable-input-stream.c'
-endif
-if gudev.found()
-  fwupd_engine_src += 'fu-udev-backend.c'
 endif
 if bluez.allowed()
   fwupd_engine_src += 'fu-bluez-backend.c'
