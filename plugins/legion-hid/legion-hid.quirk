@@ -1,0 +1,4 @@
+# Foo bar
+[USB\VID_FFFF&PID_FFFF]
+Plugin = legion_hid
+GType = FuLegionHidDevice
