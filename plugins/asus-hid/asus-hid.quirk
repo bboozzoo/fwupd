@@ -1,0 +1,11 @@
+# N-Key for Rog Ally
+[USB\VID_0B05&PID_1ABE]
+Plugin = asus_hid
+GType = FuAsusHidDevice
+AsusHidNumMcu = 2
+
+# Rog Ally-X
+[USB\VID_0B05&PID_1B4C]
+Plugin = asus_hid
+GType = FuAsusHidDevice
+AsusHidNumMcu = 1

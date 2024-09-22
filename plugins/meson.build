@@ -28,6 +28,7 @@ plugins = {
   'amd-gpu': false,
   'analogix': false,
   'android-boot': false,
+  'asus-hid': false,
   'ata': false,
   'aver-hid': false,
   'bcm57xx': false,
