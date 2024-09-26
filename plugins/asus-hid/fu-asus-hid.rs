@@ -29,7 +29,7 @@ struct FuStructAsusHidCommand {
     length: u8,
 }
 
-#[derive(Getters)]
+#[derive(Getters, ParseStream)]
 struct FuStructAsusHidDescription {
     fga: [char; 8],
     reserved: u8,

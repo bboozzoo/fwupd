@@ -7,6 +7,7 @@ plugin_builtins += static_library('fu_plugin_asus_hid',
   sources: [
     'fu-asus-hid-device.c',
     'fu-asus-hid-plugin.c',
+    'fu-asus-hid-firmware.c',
   ],
   include_directories: plugin_incdirs,
   link_with: plugin_libs,

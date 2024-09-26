@@ -7,11 +7,13 @@
 #include "config.h"
 
 #include "fu-asus-hid-device.h"
+#include "fu-asus-hid-firmware.h"
 #include "fu-asus-hid-struct.h"
 
 struct _FuAsusHidDevice {
 	FuHidDevice parent_instance;
 	guint8 num_mcu;
+	gchar *product;
 };
 
 G_DEFINE_TYPE(FuAsusHidDevice, fu_asus_hid_device, FU_TYPE_HID_DEVICE)
@@ -85,6 +87,7 @@ fu_asus_hid_device_ensure_manufacturer(FuDevice *device, GError **error)
 static gboolean
 fu_asus_hid_device_ensure_version(FuDevice *device, guint mcu, GError **error)
 {
+	FuAsusHidDevice *self = FU_ASUS_HID_DEVICE(device);
 	guint8 buf[] = {[0] = FU_ASUS_HID_REPORT_ID_INFO, [1 ... 31] = 0xff};
 	g_autoptr(GByteArray) cmd = fu_struct_asus_hid_command_new();
 	g_autoptr(GByteArray) result = NULL;
@@ -135,6 +138,8 @@ fu_asus_hid_device_ensure_version(FuDevice *device, guint mcu, GError **error)
 	name = g_strdup_printf("Microcontroller %u", mcu);
 	fu_device_set_name(device, name);
 
+	self->product = g_strdup(fu_struct_asus_hid_description_get_product(description));
+
 	return TRUE;
 }
 
@@ -164,6 +169,39 @@ fu_asus_hid_device_setup(FuDevice *device, GError **error)
 
 	/* success */
 	return TRUE;
+}
+
+static FuFirmware *
+fu_asus_hid_device_prepare_firmware(FuDevice *device,
+				    GInputStream *stream,
+				    FuProgress *progress,
+				    FwupdInstallFlags flags,
+				    GError **error)
+{
+	FuAsusHidDevice *self = FU_ASUS_HID_DEVICE(device);
+	g_autoptr(FuFirmware) firmware = fu_asus_hid_firmware_new();
+	const gchar *fw_pn;
+
+	if (!fu_firmware_parse_stream(firmware, stream, 0x0, flags, error))
+		return NULL;
+
+	fw_pn = fu_asus_hid_firmware_get_product(firmware);
+	if (g_strcmp0(fw_pn, self->product) != 0) {
+		if ((flags & FWUPD_INSTALL_FLAG_FORCE) == 0) {
+			g_set_error(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_NOT_SUPPORTED,
+				    "firmware for %s does not match %s",
+				    fw_pn,
+				    self->product);
+			return NULL;
+		}
+		g_warning("firmware for %s does not match %s but is being force installed anyway",
+			  fw_pn,
+			  self->product);
+	}
+
+	return g_steal_pointer(&firmware);
 }
 
 static gboolean
@@ -201,9 +239,20 @@ fu_asus_hid_device_init(FuAsusHidDevice *self)
 }
 
 static void
+fu_asus_hid_device_finalize(GObject *object)
+{
+	FuAsusHidDevice *self = FU_ASUS_HID_DEVICE(object);
+	g_free(self->product);
+	G_OBJECT_CLASS(fu_asus_hid_device_parent_class)->finalize(object);
+}
+
+static void
 fu_asus_hid_device_class_init(FuAsusHidDeviceClass *klass)
 {
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 	FuDeviceClass *device_class = FU_DEVICE_CLASS(klass);
+	object_class->finalize = fu_asus_hid_device_finalize;
 	device_class->setup = fu_asus_hid_device_setup;
 	device_class->set_quirk_kv = fu_asus_hid_device_set_quirk_kv;
+	device_class->prepare_firmware = fu_asus_hid_device_prepare_firmware;
 }
