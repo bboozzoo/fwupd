@@ -88,6 +88,7 @@ fu_asus_hid_device_ensure_version(FuDevice *device, guint mcu, GError **error)
 	guint8 buf[] = {[0] = FU_ASUS_HID_REPORT_ID_INFO, [1 ... 31] = 0xff};
 	g_autoptr(GByteArray) cmd = fu_struct_asus_hid_command_new();
 	g_autoptr(GByteArray) result = NULL;
+	g_autoptr(GByteArray) description = NULL;
 	g_autofree gchar *name = NULL;
 
 	if (mcu == 0)
@@ -122,13 +123,14 @@ fu_asus_hid_device_ensure_version(FuDevice *device, guint mcu, GError **error)
 	result = fu_struct_asus_hid_fw_info_parse(buf, sizeof(buf), 0x0, error);
 	if (result == NULL)
 		return FALSE;
+	description = fu_struct_asus_hid_fw_info_get_description(result);
 
 	fu_device_add_instance_strsafe(device,
 				       "PART",
-				       fu_struct_asus_hid_fw_info_get_product(result));
+				       fu_struct_asus_hid_description_get_product(description));
 	fu_device_build_instance_id(device, NULL, "USB", "VID", "PID", "PART", NULL);
 
-	fu_device_set_version(device, fu_struct_asus_hid_fw_info_get_version(result));
+	fu_device_set_version(device, fu_struct_asus_hid_description_get_version(description));
 
 	name = g_strdup_printf("Microcontroller %u", mcu);
 	fu_device_set_name(device, name);

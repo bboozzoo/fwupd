@@ -29,15 +29,20 @@ struct FuStructAsusHidCommand {
     length: u8,
 }
 
-#[derive(Parse)]
-struct FuStructAsusHidFwInfo {
-    header: FuStructAsusHidCommand,
-    reserved: u8,
+#[derive(Getters)]
+struct FuStructAsusHidDescription {
     fga: [char; 8],
     reserved: u8,
     product: [char; 6],
     reserved: u8,
     version: [char; 8],
+}
+
+#[derive(Parse)]
+struct FuStructAsusHidFwInfo {
+    header: FuStructAsusHidCommand,
+    reserved: u8,
+    description: FuStructAsusHidDescription,
 }
 
 #[derive(Parse)]
