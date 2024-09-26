@@ -8,12 +8,23 @@
 
 #include "fu-uefi-dbx-common.h"
 #include "fu-uefi-dbx-device.h"
+#ifdef WITH_UEFI_DBX_SNAPD_OBSERVER
+#include "fu-uefi-dbx-snapd-observer.h"
+#endif
 
 struct _FuUefiDbxDevice {
 	FuDevice parent_instance;
+#ifdef WITH_UEFI_DBX_SNAPD_OBSERVER
+	FuUefiDbxSnapdObserver *snapd_observer;
+#endif
 };
 
 G_DEFINE_TYPE(FuUefiDbxDevice, fu_uefi_dbx_device, FU_TYPE_DEVICE)
+
+#ifdef WITH_UEFI_DBX_SNAPD_OBSERVER
+static gboolean
+fu_uefi_dbx_device_maybe_notify_snapd(FuUefiDbxDevice *self, GBytes *data);
+#endif
 
 static gboolean
 fu_uefi_dbx_device_write_firmware(FuDevice *device,
@@ -32,6 +43,14 @@ fu_uefi_dbx_device_write_firmware(FuDevice *device,
 	fw = fu_firmware_get_bytes(firmware, error);
 	if (fw == NULL)
 		return FALSE;
+
+#ifdef WITH_UEFI_DBX_SNAPD_OBSERVER
+	g_debug("firemware write - notify snapd");
+	if (!fu_uefi_dbx_device_maybe_notify_snapd(FU_UEFI_DBX_DEVICE(device), fw)) {
+		/* TODO set error */
+		return FALSE;
+	}
+#endif
 
 	/* write entire chunk to efivarsfs */
 	fu_progress_set_status(progress, FWUPD_STATUS_DEVICE_WRITE);
@@ -219,14 +238,31 @@ fu_uefi_dbx_device_init(FuUefiDbxDevice *self)
 }
 
 static void
+fu_uefi_dbx_device_finalize(GObject *object)
+{
+#ifdef WITH_UEFI_DBX_SNAPD_OBSERVER
+	FuUefiDbxDevice *self = FU_UEFI_DBX_DEVICE(object);
+
+	if (self->snapd_observer != NULL) {
+		g_object_unref(self->snapd_observer);
+		self->snapd_observer = NULL;
+	}
+#endif /* WITH_UEFI_DBX_SNAPD_OBSERVER */
+	G_OBJECT_CLASS(fu_uefi_dbx_device_parent_class)->finalize(object);
+}
+
+static void
 fu_uefi_dbx_device_class_init(FuUefiDbxDeviceClass *klass)
 {
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 	FuDeviceClass *device_class = FU_DEVICE_CLASS(klass);
 	device_class->probe = fu_uefi_dbx_device_probe;
 	device_class->write_firmware = fu_uefi_dbx_device_write_firmware;
 	device_class->prepare_firmware = fu_uefi_dbx_device_prepare_firmware;
 	device_class->set_progress = fu_uefi_dbx_device_set_progress;
 	device_class->report_metadata_pre = fu_uefi_dbx_device_report_metadata_pre;
+
+	object_class->finalize = fu_uefi_dbx_device_finalize;
 }
 
 FuUefiDbxDevice *
@@ -236,3 +272,22 @@ fu_uefi_dbx_device_new(FuContext *ctx)
 	self = g_object_new(FU_TYPE_UEFI_DBX_DEVICE, "context", ctx, NULL);
 	return self;
 }
+
+#ifdef WITH_UEFI_DBX_SNAPD_OBSERVER
+void
+fu_uefi_dbx_device_set_snapd_observer(FuUefiDbxDevice *self, FuUefiDbxSnapdObserver *obs)
+{
+	self->snapd_observer = g_object_ref(obs);
+}
+
+static gboolean
+fu_uefi_dbx_device_maybe_notify_snapd(FuUefiDbxDevice *self, GBytes *data)
+{
+	if (self->snapd_observer == NULL) {
+		/* nothing to do */
+		return TRUE;
+	}
+
+	return fu_uefi_dbx_snapd_observer_notify_prepare(self->snapd_observer, data);
+}
+#endif /* WITH_UEFI_DBX_SNAPD_OBSERVER */
