@@ -22,6 +22,15 @@ plugin_builtin_uefi_dbx = static_library('fu_plugin_uefi_dbx',
 plugin_builtins += plugin_builtin_uefi_dbx
 
 if get_option('tests')
+  install_data(['tests/dbx-d719b2cb-3d3a-4596-a3bc-dad00e67656f'],
+    install_dir: join_paths(installed_test_datadir, 'tests'))
+  install_data(['tests/KEK-8be4df61-93ca-11d2-aa0d-00e098032b8c'],
+    install_dir: join_paths(installed_test_datadir, 'tests'))
+  install_data(['tests/dbx-update.auth'],
+    install_dir: join_paths(installed_test_datadir, 'tests'))
+  install_data(['tests/snapd.py'],
+    install_dir: join_paths(installed_test_datadir, 'tests'))
+
   env = environment()
   env.set('G_TEST_SRCDIR', meson.current_source_dir())
   env.set('G_TEST_BUILDDIR', meson.current_build_dir())
@@ -32,7 +41,10 @@ if get_option('tests')
       'fu-self-test.c',
     ],
     include_directories: plugin_incdirs,
-    dependencies: plugin_deps,
+    dependencies: [
+      plugin_deps,
+      libcurl,
+    ],
     link_with: [
       plugin_libs,
       plugin_builtin_uefi_dbx,
