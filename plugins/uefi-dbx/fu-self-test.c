@@ -13,12 +13,9 @@
 
 #include "fu-context-private.h"
 #include "fu-device-private.h"
-#include "fu-device.h"
 #include "fu-plugin-private.h"
 #include "fu-uefi-dbx-device.h"
 #include "fu-uefi-dbx-plugin.h"
-#include "glib.h"
-#include "gobject/gmarshal.h"
 
 static void
 fu_efi_image_func(void)
@@ -141,10 +138,10 @@ typedef struct {
 static void
 fu_self_test_mock_snapd_assert_calls(FuTestFixture *fixture, FuTestSnapdCalls calls)
 {
+	guint64 val = 0xffffff;
 	g_autoptr(GBytes) rsp = NULL;
 	g_autoptr(GKeyFile) kf = g_key_file_new();
 	g_autoptr(GError) error = NULL;
-	guint64 val = 0xffffff;
 
 	rsp = fu_self_test_mock_snapd_easy_get_request(fixture, "/test/stats");
 
@@ -206,8 +203,8 @@ static void
 fu_self_test_set_up(FuTestFixture *fixture, gconstpointer user_data)
 {
 	FuTestCase *tc = (FuTestCase *)user_data;
+	gboolean ret;
 	g_autoptr(GError) error = NULL;
-	gboolean ret = FALSE;
 
 	if (tc->with_snapd && fu_self_test_mock_snapd_init(fixture)) {
 		fixture->mock_snapd_available = TRUE;
@@ -248,7 +245,7 @@ fu_self_test_tear_down(FuTestFixture *fixture, gconstpointer user_data)
 static void
 fu_uefi_dbx_test_plugin_coldplug_no_device(FuTestFixture *fixture, gconstpointer user_data)
 {
-	gboolean ret = FALSE;
+	gboolean ret;
 	FuContext *ctx = fixture->ctx;
 	g_autoptr(FuProgress) progress = fu_progress_new(G_STRLOC);
 	g_autoptr(GError) error = NULL;
@@ -271,9 +268,9 @@ fu_test_mock_efivar_content(FuEfivars *efivars,
 {
 	gchar *mock_blob = NULL;
 	gsize mock_blob_size = 0;
+	gboolean ret;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GBytes) mock_bytes = NULL;
-	gboolean ret = FALSE;
 
 	g_file_get_contents(path, &mock_blob, &mock_blob_size, &error);
 	g_assert_no_error(error);
@@ -307,9 +304,9 @@ fu_test_mock_dbx_efivars(FuEfivars *efivars)
 static GInputStream *
 fu_test_mock_dbx_update_stream(void)
 {
-	g_autoptr(GError) error = NULL;
 	gchar *mock_blob = NULL;
 	gsize mock_blob_size = 0;
+	g_autoptr(GError) error = NULL;
 	g_autoptr(GBytes) mock_bytes = NULL;
 	g_autofree gchar *mock_dbx_update_path =
 	    g_test_build_filename(G_TEST_DIST, "tests/dbx-update.auth", NULL);
@@ -327,15 +324,15 @@ fu_uefi_dbx_test_plugin_update(FuTestFixture *fixture, gconstpointer user_data)
 	/* run though an update */
 
 	FuTestCase *tc = (FuTestCase *)user_data;
-	gboolean ret = FALSE;
+	gboolean ret;
 	FuContext *ctx = fixture->ctx;
-	g_autoptr(GError) error = NULL;
 	GPtrArray *devs = NULL;
 	FuDevice *dev = NULL;
+	FuEfivars *efivars = fu_context_get_efivars(ctx);
+	g_autoptr(GError) error = NULL;
 	g_autoptr(GInputStream) stream_fw = NULL;
 	g_autoptr(FuProgress) progress = fu_progress_new(G_STRLOC);
 	g_autoptr(FuPlugin) plugin = fu_plugin_new_from_gtype(fu_uefi_dbx_plugin_get_type(), ctx);
-	FuEfivars *efivars = fu_context_get_efivars(ctx);
 
 	if (tc->with_snapd && !fixture->mock_snapd_available) {
 		g_test_skip("mock snapd not available");
@@ -391,15 +388,15 @@ fu_uefi_dbx_test_plugin_failed_update(FuTestFixture *fixture, gconstpointer user
 	 * properly mock the environment when using snapd integration */
 
 	FuTestCase *tc = (FuTestCase *)user_data;
-	gboolean ret = FALSE;
+	gboolean ret;
 	FuContext *ctx = fixture->ctx;
-	g_autoptr(GError) error = NULL;
 	GPtrArray *devs = NULL;
 	FuDevice *dev = NULL;
+	FuEfivars *efivars = fu_context_get_efivars(ctx);
+	g_autoptr(GError) error = NULL;
 	g_autoptr(GInputStream) stream_fw = NULL;
 	g_autoptr(FuProgress) progress = fu_progress_new(G_STRLOC);
 	g_autoptr(FuPlugin) plugin = fu_plugin_new_from_gtype(fu_uefi_dbx_plugin_get_type(), ctx);
-	FuEfivars *efivars = fu_context_get_efivars(ctx);
 
 	if (!tc->with_snapd) {
 		g_test_skip("only supports snapd integration variant");
@@ -463,13 +460,13 @@ static void
 fu_uefi_dbx_test_plugin_coldplug_probed_device(FuTestFixture *fixture, gconstpointer user_data)
 {
 	FuTestCase *tc = (FuTestCase *)user_data;
-	gboolean ret = FALSE;
+	gboolean ret;
 	FuContext *ctx = fixture->ctx;
-	g_autoptr(GError) error = NULL;
 	GPtrArray *devs = NULL;
+	FuEfivars *efivars = fu_context_get_efivars(ctx);
+	g_autoptr(GError) error = NULL;
 	g_autoptr(FuProgress) progress = fu_progress_new(G_STRLOC);
 	g_autoptr(FuPlugin) plugin = fu_plugin_new_from_gtype(fu_uefi_dbx_plugin_get_type(), ctx);
-	FuEfivars *efivars = fu_context_get_efivars(ctx);
 
 	if (tc->with_snapd && !fixture->mock_snapd_available) {
 		g_test_skip("mock snapd not available");
@@ -513,7 +510,7 @@ static void
 fu_uefi_dbx_test_plugin_startup(FuTestFixture *fixture, gconstpointer user_data)
 {
 	FuTestCase *tc = (FuTestCase *)user_data;
-	gboolean ret = FALSE;
+	gboolean ret;
 	FuContext *ctx = fixture->ctx;
 	g_autoptr(FuProgress) progress = fu_progress_new(G_STRLOC);
 	g_autoptr(GError) error = NULL;
@@ -545,7 +542,6 @@ fu_uefi_dbx_test_plugin_startup(FuTestFixture *fixture, gconstpointer user_data)
 int
 main(int argc, char **argv)
 {
-	g_autofree gchar *testdatadir = NULL;
 	FuTestCase simple = {
 	    .with_snapd = FALSE,
 	    .devices_cnt = 0,
@@ -582,6 +578,7 @@ main(int argc, char **argv)
 	    .snapd_supported = TRUE,
 	    .mock_snapd_scenario = "failed-cleanup",
 	};
+	g_autofree gchar *testdatadir = NULL;
 
 	(void)g_setenv("G_TEST_SRCDIR", SRCDIR, FALSE);
 	g_test_init(&argc, &argv, NULL);
