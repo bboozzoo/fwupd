@@ -59,9 +59,8 @@ fu_uefi_dbx_device_write_firmware(FuDevice *device,
 	if (fw == NULL)
 		return FALSE;
 
-	if (!fu_uefi_dbx_device_maybe_notify_snapd_prepare(FU_UEFI_DBX_DEVICE(device), fw, error)) {
+	if (!fu_uefi_dbx_device_maybe_notify_snapd_prepare(FU_UEFI_DBX_DEVICE(device), fw, error))
 		return FALSE;
-	}
 
 	/* write entire chunk to efivarsfs */
 	fu_progress_set_status(progress, FWUPD_STATUS_DEVICE_WRITE);

@@ -19,6 +19,8 @@ struct _FuUefiDbxSnapdNotifier {
 
 G_DEFINE_TYPE(FuUefiDbxSnapdNotifier, fu_uefi_dbx_snapd_notifier, G_TYPE_OBJECT)
 
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(CURL, curl_easy_cleanup);
+
 FuUefiDbxSnapdNotifier *
 fu_uefi_dbx_snapd_notifier_new(void)
 {
@@ -81,9 +83,9 @@ fu_uefi_dbx_snapd_notifier_simple_req(FuUefiDbxSnapdNotifier *self,
 				      gsize len,
 				      GError **error)
 {
-	CURL *curl = NULL;
 	CURLcode res = -1;
 	glong status_code = 0;
+	g_autoptr(CURL) curl = NULL;
 	g_autofree gchar *endpoint_str = NULL;
 	g_autoptr(GByteArray) rsp_buf = g_byte_array_new();
 
@@ -116,7 +118,6 @@ fu_uefi_dbx_snapd_notifier_simple_req(FuUefiDbxSnapdNotifier *self,
 	}
 
 	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status_code);
-	curl_easy_cleanup(curl);
 
 	if (status_code == 404) {
 		g_set_error(error,
@@ -160,9 +161,7 @@ fu_uefi_dbx_snapd_notifier_simple_req(FuUefiDbxSnapdNotifier *self,
 gboolean
 fu_uefi_dbx_snapd_notifier_dbx_manager_startup(FuUefiDbxSnapdNotifier *self, GError **error)
 {
-	const char *startup_msg = "{"
-				  "\"action\":\"efi-secureboot-update-startup\""
-				  "}";
+	const char *startup_msg = "{\"action\":\"efi-secureboot-update-startup\"}";
 
 	if (!fu_uefi_dbx_snapd_notifier_simple_req(self,
 						   "/v2/system-secureboot",
@@ -228,9 +227,7 @@ fu_uefi_dbx_snapd_notifier_dbx_update_prepare(FuUefiDbxSnapdNotifier *self,
 gboolean
 fu_uefi_dbx_snapd_notifier_dbx_update_cleanup(FuUefiDbxSnapdNotifier *self, GError **error)
 {
-	const char *msg = "{"
-			  "\"action\":\"efi-secureboot-update-db-cleanup\""
-			  "}";
+	const char *msg = "{\"action\":\"efi-secureboot-update-db-cleanup\"}";
 
 	if (!fu_uefi_dbx_snapd_notifier_simple_req(self,
 						   "/v2/system-secureboot",
